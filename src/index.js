@@ -11,6 +11,8 @@ const requireAuth = require('./middleware/requireAuth');
 const app = express();
 const PORT = process.env.PORT || 3003;
 
+app.set('trust proxy', 1);
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
