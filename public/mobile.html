@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Dictats — Mòbil</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body { background: var(--bg); }
+    .mobile-shell { display:flex; flex-direction:column; min-height:100vh; }
+    .mobile-header {
+      background:var(--surface); border-bottom:1px solid var(--border);
+      padding:12px 16px; display:flex; align-items:center; justify-content:space-between;
+      position:sticky; top:0; z-index:10;
+    }
+    .mobile-logo { font-size:.9375rem; font-weight:700; color:var(--primary); }
+    .mobile-main { flex:1; padding:16px; max-width:540px; margin:0 auto; width:100%; }
+
+    .mobile-view { display:none; }
+    .mobile-view.active { display:block; }
+
+    .big-btn {
+      width:100%; padding:18px; font-size:1.125rem; font-weight:600;
+      border-radius:12px; border:none; cursor:pointer; font-family:inherit;
+      transition:opacity .15s, transform .1s;
+    }
+    .big-btn:active { transform:scale(0.97); }
+    .big-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+    .big-btn-primary { background:var(--primary); color:white; }
+    .big-btn-ghost { background:var(--surface); color:var(--text); border:2px solid var(--border); }
+    .big-btn-success { background:#16a34a; color:white; }
+
+    .mobile-level-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+    .mobile-level-card {
+      background:var(--surface); border:2px solid var(--border); border-radius:12px;
+      padding:16px 12px; text-align:center; cursor:pointer; transition:border-color .15s;
+    }
+    .mobile-level-card.active { border-color:var(--primary); background:var(--primary-light); }
+    .mobile-level-card .lv-icon { font-size:1.75rem; margin-bottom:6px; }
+    .mobile-level-card .lv-name { font-size:.875rem; font-weight:600; }
+
+    .mobile-text-item {
+      background:var(--surface); border:1px solid var(--border); border-radius:10px;
+      padding:14px 16px; margin-bottom:10px; cursor:pointer; transition:border-color .15s;
+    }
+    .mobile-text-item:active { border-color:var(--primary); background:var(--primary-light); }
+    .mobile-text-item .mt-title { font-weight:600; font-size:.9375rem; margin-bottom:2px; }
+    .mobile-text-item .mt-meta { font-size:.8125rem; color:var(--text-muted); }
+
+    .mobile-progress { margin:16px 0; }
+    .mobile-phrase-info { text-align:center; font-size:.875rem; color:var(--text-muted); margin-bottom:12px; }
+
+    .photo-upload-big {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      border:2px dashed var(--border); border-radius:12px; padding:32px 16px;
+      cursor:pointer; background:var(--surface); transition:border-color .15s; gap:12px;
+      text-align:center;
+    }
+    .photo-upload-big:active { border-color:var(--primary); }
+    .photo-upload-big svg { color:var(--text-muted); }
+    .photo-upload-big span { font-size:.9375rem; color:var(--text-muted); }
+
+    .mobile-result-label {
+      text-align:center; padding:24px 16px 16px;
+      font-size:2rem; font-weight:700; margin-bottom:4px;
+    }
+    .mobile-result-sub { text-align:center; font-size:1rem; color:var(--text-muted); margin-bottom:8px; }
+    .mobile-result-stats { text-align:center; font-size:.875rem; color:var(--text-muted); margin-bottom:20px; }
+  </style>
+</head>
+<body>
+  <div class="mobile-shell">
+    <header class="mobile-header">
+      <span class="mobile-logo">✏️ Dictats en Català</span>
+      <div style="display:flex;gap:8px">
+        <a href="/" class="btn btn-ghost btn-sm">🖥️</a>
+        <button class="btn btn-ghost btn-sm" id="m-logout">Sortir</button>
+      </div>
+    </header>
+
+    <main class="mobile-main">
+
+      <!-- VIEW: Nivell -->
+      <div id="m-view-level" class="mobile-view active">
+        <h2 style="font-size:1.125rem;font-weight:600;margin-bottom:16px">Escull un nivell</h2>
+        <div class="mobile-level-grid">
+          <div class="mobile-level-card active" data-level="basic"><div class="lv-icon">🌱</div><div class="lv-name">Bàsic</div></div>
+          <div class="mobile-level-card" data-level="intermedi"><div class="lv-icon">📖</div><div class="lv-name">Intermedi</div></div>
+          <div class="mobile-level-card" data-level="avancat"><div class="lv-icon">🎓</div><div class="lv-name">Avançat</div></div>
+          <div class="mobile-level-card" data-level="personal"><div class="lv-icon">✏️</div><div class="lv-name">Els meus</div></div>
+        </div>
+        <div id="m-text-list"></div>
+      </div>
+
+      <!-- VIEW: Dictació -->
+      <div id="m-view-dictation" class="mobile-view">
+        <button class="btn btn-ghost btn-sm" id="m-back-level" style="margin-bottom:16px">← Tornar</button>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-body">
+            <h3 id="m-dictation-title" style="font-size:1rem;font-weight:600;margin-bottom:4px"></h3>
+            <div id="m-level-badge" style="font-size:.8125rem;color:var(--text-muted);margin-bottom:16px"></div>
+
+            <div id="m-status-badge" style="margin-bottom:12px"></div>
+            <div class="mobile-progress">
+              <div class="progress-bar-wrap"><div class="progress-bar-fill" id="m-progress-bar"></div></div>
+            </div>
+            <div class="mobile-phrase-info" id="m-phrase-indicator"></div>
+
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <button class="big-btn big-btn-primary" id="m-btn-start" style="display:flex;align-items:center;justify-content:center;gap:8px">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                Iniciar dictado
+              </button>
+              <button class="big-btn big-btn-ghost" id="m-btn-repeat" style="display:none">↩ Repetir frase</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Photo zone -->
+        <div id="m-photo-section" style="display:none">
+          <div class="card">
+            <div class="card-body">
+              <p style="font-size:.875rem;color:var(--text-muted);margin-bottom:12px">Dictado completat. Puja una foto del paper per corregir-lo (opcional).</p>
+              <label class="photo-upload-big" for="m-photo-input">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span id="m-photo-label">Fer foto o triar de la galeria</span>
+              </label>
+              <input type="file" id="m-photo-input" accept="image/*" capture="environment" style="display:none">
+              <img id="m-photo-preview" style="display:none;width:100%;border-radius:10px;margin-top:12px;border:1px solid var(--border)">
+              <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+                <button class="big-btn big-btn-success" id="m-btn-correct-photo" disabled>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline"><path d="M9 11l3 3L22 4"/></svg>
+                  Corregir amb la foto
+                </button>
+                <button class="big-btn big-btn-ghost" id="m-btn-skip-photo">Ometre (sense correcció)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="m-correction-loading" style="display:none;text-align:center;padding:32px;color:var(--text-muted)">
+          <div class="spinner" style="margin:0 auto 12px"></div>
+          Claude llegeix la foto i corregeix…
+        </div>
+      </div>
+
+      <!-- VIEW: Resultats -->
+      <div id="m-view-results" class="mobile-view">
+        <div id="m-result-label" class="mobile-result-label"></div>
+        <div id="m-result-sub" class="mobile-result-sub"></div>
+        <div id="m-result-stats" class="mobile-result-stats"></div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-body">
+            <div id="m-original-marked" class="original-marked" style="font-size:.9375rem"></div>
+            <div id="m-errors-section" class="errors-list" style="margin-top:16px"></div>
+            <div id="m-feedback-box" class="feedback-box" style="margin-top:16px"></div>
+          </div>
+        </div>
+
+        <button class="big-btn big-btn-primary" id="m-btn-new" style="margin-bottom:24px">Nou dictado</button>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    function showView(name) {
+      document.querySelectorAll('.mobile-view').forEach(v => v.classList.remove('active'));
+      $('m-view-' + name).classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    const LEVEL_LABELS = { basic:'Bàsic', intermedi:'Intermedi', avancat:'Avançat', personal:'Els meus textos' };
+
+    const state = {
+      level: 'basic',
+      selectedText: null,
+      phrases: [],
+      currentPhraseIdx: 0,
+      dictationDone: false,
+      photoFile: null,
+    };
+
+    async function init() {
+      const res = await fetch('/api/me');
+      if (!res.ok) { window.location.href = '/login'; return; }
+
+      $('m-logout').addEventListener('click', async () => {
+        await fetch('/api/logout', { method: 'POST' });
+        window.location.href = '/login';
+      });
+
+      document.querySelectorAll('.mobile-level-card').forEach(card => {
+        card.addEventListener('click', () => {
+          document.querySelectorAll('.mobile-level-card').forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+          state.level = card.dataset.level;
+          loadTexts(state.level);
+        });
+      });
+
+      $('m-back-level').addEventListener('click', () => { cancelSpeech(); showView('level'); });
+      $('m-btn-start').addEventListener('click', startDictation);
+      $('m-btn-repeat').addEventListener('click', repeatPhrase);
+      $('m-photo-input').addEventListener('change', onPhoto);
+      $('m-btn-correct-photo').addEventListener('click', correctWithPhoto);
+      $('m-btn-skip-photo').addEventListener('click', () => { renderNoCorrection(); showView('results'); });
+      $('m-btn-new').addEventListener('click', () => { resetAll(); showView('level'); });
+
+      if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = () => {};
+      await loadTexts('basic');
+    }
+
+    async function loadTexts(level) {
+      $('m-text-list').innerHTML = '<div style="color:var(--text-muted);font-size:.875rem;padding:8px 0">Carregant…</div>';
+      const url = level === 'personal' ? '/api/user-texts' : `/api/texts/${level}`;
+      const res = await fetch(url);
+      const texts = res.ok ? await res.json() : [];
+
+      if (texts.length === 0) {
+        $('m-text-list').innerHTML = '<div style="color:var(--text-muted);font-size:.875rem;padding:8px 0">No hi ha textos disponibles.</div>';
+        return;
+      }
+
+      $('m-text-list').innerHTML = texts.map(t => `
+        <div class="mobile-text-item" data-id="${t.id}">
+          <div class="mt-title">${t.title}</div>
+          <div class="mt-meta">${t.wordCount} paraules · ${t.description}</div>
+        </div>
+      `).join('');
+
+      document.querySelectorAll('.mobile-text-item').forEach(item => {
+        item.addEventListener('click', () => selectText(item.dataset.id));
+      });
+    }
+
+    async function selectText(id) {
+      let text;
+      if (state.level === 'personal') {
+        const res = await fetch('/api/user-texts');
+        const list = await res.json();
+        text = list.find(t => t.id === id);
+      } else {
+        const res = await fetch(`/api/texts/${state.level}/${id}`);
+        if (!res.ok) return;
+        text = await res.json();
+      }
+      if (!text) return;
+
+      state.selectedText = text;
+      state.phrases = text.text.split('||').map(s => s.trim()).filter(Boolean);
+      state.currentPhraseIdx = 0;
+      state.dictationDone = false;
+      state.photoFile = null;
+
+      $('m-dictation-title').textContent = text.title;
+      $('m-level-badge').textContent = LEVEL_LABELS[state.level];
+      $('m-progress-bar').style.width = '0%';
+      $('m-phrase-indicator').textContent = '';
+      $('m-status-badge').innerHTML = '';
+      $('m-btn-start').style.display = '';
+      $('m-btn-repeat').style.display = 'none';
+      $('m-photo-section').style.display = 'none';
+      $('m-correction-loading').style.display = 'none';
+
+      showView('dictation');
+    }
+
+    function startDictation() {
+      if (!window.speechSynthesis) { alert('Activa la síntesi de veu al dispositiu.'); return; }
+      $('m-btn-start').style.display = 'none';
+      $('m-btn-repeat').style.display = '';
+      state.currentPhraseIdx = 0;
+      speakNext();
+    }
+
+    function speakNext() {
+      const idx = state.currentPhraseIdx;
+      const total = state.phrases.length;
+      if (idx >= total) {
+        state.dictationDone = true;
+        $('m-progress-bar').style.width = '100%';
+        $('m-phrase-indicator').textContent = 'Dictado completat';
+        $('m-btn-repeat').style.display = 'none';
+        $('m-status-badge').innerHTML = '<span class="speaking-badge" style="background:var(--success-light);color:var(--success)">✓ Completat</span>';
+        $('m-photo-section').style.display = '';
+        return;
+      }
+      $('m-progress-bar').style.width = `${(idx / total) * 100}%`;
+      $('m-phrase-indicator').textContent = `Frase ${idx + 1} de ${total}`;
+      $('m-status-badge').innerHTML = `<span class="speaking-badge"><span class="dot"></span>Llegint…</span>`;
+
+      const utter = new SpeechSynthesisUtterance(state.phrases[idx]);
+      utter.lang = 'ca-ES';
+      utter.rate = 0.75;
+      const voices = window.speechSynthesis.getVoices();
+      const voice = voices.find(v => v.lang.startsWith('ca')) || voices.find(v => v.lang.startsWith('es'));
+      if (voice) utter.voice = voice;
+      utter.onend = () => {
+        if (total - idx - 1 > 0) {
+          $('m-status-badge').innerHTML = '<span class="pause-badge">⏸ Pausa 5s</span>';
+          setTimeout(() => { state.currentPhraseIdx++; speakNext(); }, 5000);
+        } else { state.currentPhraseIdx++; speakNext(); }
+      };
+      utter.onerror = () => { state.currentPhraseIdx++; speakNext(); };
+      window.speechSynthesis.speak(utter);
+    }
+
+    function repeatPhrase() {
+      cancelSpeech();
+      const idx = Math.max(0, state.currentPhraseIdx - 1);
+      const utter = new SpeechSynthesisUtterance(state.phrases[idx] || state.phrases[state.phrases.length - 1]);
+      utter.lang = 'ca-ES'; utter.rate = 0.75;
+      window.speechSynthesis.speak(utter);
+    }
+
+    function cancelSpeech() { if (window.speechSynthesis) window.speechSynthesis.cancel(); }
+
+    function onPhoto(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      state.photoFile = file;
+      $('m-photo-label').textContent = file.name;
+      $('m-btn-correct-photo').disabled = false;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        $('m-photo-preview').src = ev.target.result;
+        $('m-photo-preview').style.display = '';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function correctWithPhoto() {
+      $('m-photo-section').style.display = 'none';
+      $('m-correction-loading').style.display = '';
+
+      const formData = new FormData();
+      formData.append('photo', state.photoFile);
+      formData.append('originalText', state.selectedText.text);
+      formData.append('level', state.level);
+      formData.append('textId', state.selectedText.id || 'unknown');
+      formData.append('textTitle', state.selectedText.title || '');
+
+      try {
+        const res = await fetch('/api/correct-image', { method: 'POST', body: formData });
+        const correction = await res.json();
+        $('m-correction-loading').style.display = 'none';
+        renderResults(correction);
+        showView('results');
+      } catch {
+        $('m-correction-loading').style.display = 'none';
+        $('m-photo-section').style.display = '';
+        alert('Error en la correcció. Torna a provar.');
+      }
+    }
+
+    function renderNoCorrection() {
+      $('m-result-label').textContent = 'Completat';
+      $('m-result-label').className = 'mobile-result-label';
+      $('m-result-label').style.color = 'var(--primary)';
+      $('m-result-sub').textContent = 'Has fet el dictado en paper.';
+      $('m-result-stats').textContent = '';
+      const clean = state.selectedText.text.replace(/\|\|/g,'').replace(/\s+/g,' ').trim();
+      $('m-original-marked').innerHTML = clean.split(/\s+/).map(w => `<span class="word-ok">${escapeHtml(w)}</span>`).join(' ');
+      $('m-errors-section').innerHTML = '';
+      $('m-feedback-box').textContent = '';
+    }
+
+    function renderResults(c) {
+      const errors = c.errors || [];
+      const scale = c.scale || { label:'—', sub:'', cls:'scale-good' };
+      const colors = { 'scale-excellent':'#16a34a','scale-great':'#16a34a','scale-good':'var(--primary)','scale-ok':'var(--warning)','scale-keep':'var(--error)' };
+
+      $('m-result-label').textContent = scale.label;
+      $('m-result-label').style.color = colors[scale.cls] || 'var(--primary)';
+      $('m-result-sub').textContent = scale.sub;
+      $('m-result-stats').textContent = `${c.correctWords ?? '—'} de ${c.totalWords ?? '—'} paraules · ${errors.length} errors`;
+
+      const clean = state.selectedText.text.replace(/\|\|/g,'').replace(/\s+/g,' ').trim();
+      const words = clean.split(/\s+/);
+      const errorMap = {};
+      errors.forEach(e => { errorMap[e.position] = e; });
+
+      $('m-original-marked').innerHTML = words.map((w, i) =>
+        errorMap[i]
+          ? `<span class="word-error" title="${escapeHtml(errorMap[i].explanation||'')}">${escapeHtml(w)}</span>`
+          : `<span class="word-ok">${escapeHtml(w)}</span>`
+      ).join(' ');
+
+      $('m-errors-section').innerHTML = errors.length === 0 ? '' : `
+        <h3>Errors detectats</h3>
+        ${errors.map(e => `
+          <div class="error-item">
+            <span class="error-type">${escapeHtml(e.type||'error')}</span>
+            <div class="error-detail">
+              <div class="error-words">
+                <span class="wrong">${escapeHtml(e.userWrote||'(omès)')}</span>
+                <span class="arrow">→</span>
+                <span class="right">${escapeHtml(e.original||'')}</span>
+              </div>
+              <div class="error-explanation">${escapeHtml(e.explanation||'')}</div>
+            </div>
+          </div>`).join('')}`;
+
+      $('m-feedback-box').textContent = c.feedback || '';
+    }
+
+    function resetAll() {
+      cancelSpeech();
+      state.selectedText = null; state.phrases = []; state.dictationDone = false; state.photoFile = null;
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    init();
+  </script>
+</body>
+</html>
