@@ -37,6 +37,11 @@ app.use(session({
   cookie: { httpOnly: true, maxAge: 8 * 60 * 60 * 1000, secure: process.env.NODE_ENV === 'production' },
 }));
 
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} session=${!!req.session?.profile}`);
+  next();
+});
+
 app.use('/api', authRoutes);
 app.use('/api', dictatsRoutes);
 

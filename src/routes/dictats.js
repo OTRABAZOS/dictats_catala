@@ -120,7 +120,7 @@ router.post('/correct', requireAuth, async (req, res) => {
   try {
     const message = await anthropic.messages.create({
       model: 'claude-opus-4-6',
-      max_tokens: 1024,
+      max_tokens: 4096,
       messages: [{ role: 'user', content: CORRECTION_PROMPT(cleanOriginal, userText) }],
     });
 
@@ -137,7 +137,7 @@ router.post('/correct', requireAuth, async (req, res) => {
 
     res.json(correction);
   } catch (err) {
-    console.error('Claude API error:', err.message);
+    console.error('Claude API error:', err.status, err.message);
     res.status(500).json({ error: 'Error en la correcció. Torna a provar.' });
   }
 });
@@ -187,7 +187,7 @@ Retorna NOMÉS el JSON, sense cap altre text.`;
   try {
     const message = await anthropic.messages.create({
       model: 'claude-opus-4-6',
-      max_tokens: 1500,
+      max_tokens: 4096,
       messages: [{
         role: 'user',
         content: [
